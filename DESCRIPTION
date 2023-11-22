@@ -10,7 +10,7 @@ Depends:
     tidyr,
     vctrs,
     numbers,
-    ggplot2
+    ggplot2,
     atlas.match,
     hershey
 Remotes: 
