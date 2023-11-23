@@ -71,7 +71,7 @@
 # [FUNCTIONS] -------------------------------------------------------------
 # - Letters data frame ----------------------------------------------------
 fun_letters_data <- function(
-    chr_font = c('cyrillic', 'greek', 'rowmans')
+    chr_font = c('cyrillic', 'greek', 'latin')
     , int_glyph = NULL
     , dbl_scale_ub = 100
     , dbl_scale_lb = 0
@@ -80,8 +80,10 @@ fun_letters_data <- function(
 
   # Arguments validation
   stopifnot(
-    "'chr_font' must be 'cyrillic', 'greek', and/or 'rowmans'." =
-      chr_font %in% c('cyrillic', 'greek', 'rowmans')
+    # "'chr_font' must be 'cyrillic', 'greek', and/or 'rowmans'." =
+    "'chr_font' must be 'cyrillic', 'greek', and/or 'latin'." =
+      # chr_font %in% c('cyrillic', 'greek', 'rowmans')
+      chr_font %in% c('cyrillic', 'greek', 'latin')
   )
 
   stopifnot(
@@ -113,6 +115,8 @@ fun_letters_data <- function(
   # Data wrangling
   dbl_scale_ub[[1]] -> dbl_scale_ub
   dbl_scale_lb[[1]] -> dbl_scale_lb
+
+  chr_font[chr_font == 'latin'] <- 'rowmans'
 
   hershey::hershey %>%
     filter(
