@@ -190,6 +190,17 @@ fun_letters_data <- function(
     ungroup() ->
     df_letters
 
+  # 'rowmans' font to 'latin'
+  df_letters %>%
+    mutate(
+      font =
+        if_else(
+          font == 'rowmans'
+          , 'latin'
+          , font
+        )
+    ) -> df_letters
+
   # Add 'df_letters' subclass
   df_letters %>%
     new_data_frame(
