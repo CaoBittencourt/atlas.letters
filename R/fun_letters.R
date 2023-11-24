@@ -689,7 +689,7 @@ fun_letters_profiles <- function(
       glyph,
       font,
       item,
-      char
+      character
     ) %>%
     reframe(
       item_score =
