@@ -78,7 +78,7 @@ c(
   'Geh' = 40,
   'Deh' = 37,
   'Yeh' = 60,
-  'Zheh' = 50,
+  'Zheh' = 41,
   'Zeh' = 59,
   'Ee' = 42,
   'Ee Kratkoyeh' = 38,
@@ -321,7 +321,7 @@ fun_letters_data <- function(
     , int_glyph = NULL
     , dbl_scale_ub = 100
     , dbl_scale_lb = 0
-    , lgc_upside_down = T
+    , lgc_upside_down = F
 ){
 
   # Arguments validation
@@ -374,6 +374,17 @@ fun_letters_data <- function(
     drop_na() ->
     df_letters
 
+  # 'rowmans' font to 'latin'
+  df_letters %>%
+    mutate(
+      font =
+        if_else(
+          font == 'rowmans'
+          , 'latin'
+          , font
+        )
+    ) -> df_letters
+
   # Correct glyph names
   df_letters %>%
     select(
@@ -403,7 +414,8 @@ fun_letters_data <- function(
       mutate(
         glyph = -glyph,
         character = paste0(
-          character, '_upside_down'
+          character,
+          '_upside_down'
         ),
         y = -y
       ) %>%
@@ -444,17 +456,6 @@ fun_letters_data <- function(
     ) %>%
     ungroup() ->
     df_letters
-
-  # 'rowmans' font to 'latin'
-  df_letters %>%
-    mutate(
-      font =
-        if_else(
-          font == 'rowmans'
-          , 'latin'
-          , font
-        )
-    ) -> df_letters
 
   # Add 'df_letters' subclass
   df_letters %>%
