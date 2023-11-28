@@ -855,10 +855,35 @@ fun_letters_similarity <- function(
   ) -> names(df_query_rows)
 
   # Apply matching function
+  # vectorize fun_match_similarity for df_query_rows with more than 1 row
   # map for each row?
+  # if(
+  #   all(
+  #     df_letters_profile ==
+  #     df_query_rows
+  #     )
+  # ){
+  #
+  #   fun_match_similarity(
+  #     df_data_rows = df_letters_profile
+  #     , df_query_rows = df_query_rows
+  #     , chr_method = chr_method
+  #     , dbl_scale_ub = dbl_scale_ub
+  #     , dbl_scale_lb = dbl_scale_lb
+  #     , chr_id_col = chr_id_col
+  #     , lgc_sort = lgc_sort
+  #   ) -> list_letters_match
+  #
+  # } else {
+  #
+  #
+  #
+  # }
+
   fun_match_similarity(
     df_data_rows = df_letters_profile
-    , df_query_rows = df_query_rows[1, ]
+    # , df_query_rows = df_query_rows[1, ]
+    , df_query_rows = df_query_rows
     , chr_method = chr_method
     , dbl_scale_ub = dbl_scale_ub
     , dbl_scale_lb = dbl_scale_lb
