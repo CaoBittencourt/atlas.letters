@@ -326,9 +326,7 @@ fun_letters_data <- function(
 
   # Arguments validation
   stopifnot(
-    # "'chr_font' must be 'cyrillic', 'greek', and/or 'rowmans'." =
     "'chr_font' must be 'cyrillic', 'greek', and/or 'latin'." =
-      # chr_font %in% c('cyrillic', 'greek', 'rowmans')
       chr_font %in% c('cyrillic', 'greek', 'latin')
   )
 
@@ -457,6 +455,18 @@ fun_letters_data <- function(
     ungroup() ->
     df_letters
 
+  # Glyph unique id
+  df_letters %>%
+    mutate(
+      .before = 1
+      , id_glyph =
+        paste0(
+          font,
+          '_',
+          glyph
+        )
+    ) -> df_letters
+
   # Add 'df_letters' subclass
   df_letters %>%
     new_data_frame(
@@ -472,7 +482,10 @@ fun_letters_data <- function(
 }
 
 # - Plot letters -----------------------------------------------------------
-fun_letters_plot <- function(df_letters){
+fun_letters_plot <- function(
+    df_letters
+    , df_letters_profile = NULL
+){
 
   # Arguments validation
   stopifnot(
