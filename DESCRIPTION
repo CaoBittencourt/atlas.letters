@@ -1,7 +1,7 @@
 Package: atlas.letters
 Type: Package
 Title: Letter-Shaped Profiles: A Generalization of 'T-Shaped Skills'
-Version: 2.1.1
+Version: 2.2.0
 Author: Cao Bittencourt
 Maintainer: Cao Bittencourt <caobittencourt@gmail.com>
 Description: "T-Shaped Skills" is a famous construct in Industrial Psychology which refers to workers with a solid base of skills from other domains as well as high specialization in a particular field of expertise. However, this concept can be further generalized beyond the letter "T" to summarize an individual's professional competencies as the shape of any given letter. With this R package, one can convert characters from Latin, Greek and Cyrillic alphabets to professional profiles (i.e. a vector of bounded competence scores). In additional, the atlas.letters package provides matching functionalities to identify one's "letter-shaped profile" (be it "T-Shaped", "A-Shaped", "W-Shaped", and so on). Finally, plotting of letters and letter-shaped profiles are implemented via the ggplot2 package.
