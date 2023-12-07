@@ -1155,6 +1155,9 @@ fun_letters_similarity <- function(
     , lgc_sort = lgc_sort
   ) -> list_letters_match
 
+  return(list_letters_match)
+  stop()
+
   # Data wrangling
   list_letters_match$
     list_similarity %>%
