@@ -1095,10 +1095,21 @@ fun_letters_rearrange <- function(
     pivot_wider(
       names_from = 'item',
       values_from = 'item_score'
-    ) -> df_data_rows
+    ) -> df_rearranged
+
+  rm(df_data_rows)
+
+  # 'df_rearranged' subclass
+  new_data_frame(
+    df_rearranged
+    , class = c(
+      class(df_rearranged)
+      , 'df_rearranged'
+    )
+  ) -> df_rearranged
 
   # Output
-  return(df_data_rows)
+  return(df_rearranged)
 
 }
 
