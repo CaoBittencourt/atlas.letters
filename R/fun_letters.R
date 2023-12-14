@@ -495,16 +495,16 @@ fun_letters_plot <- function(
       any(class(df_letters) == 'df_letters')
   )
 
-  stopifnot(
-    "'list_letters_match' must be either NULL or a list with the 'list_letters_match' subclass." =
-      any(
-        is.null(list_letters_match)
-        , all(
-          any(class(list_letters_match) == 'list_letters_match'),
-          any(class(list_letters_match) == 'list')
-        )
-      )
-  )
+  # stopifnot(
+  #   "'list_letters_match' must be either NULL or a list with the 'list_letters_match' subclass." =
+  #     any(
+  #       is.null(list_letters_match)
+  #       , all(
+  #         any(class(list_letters_match) == 'list_letters_match'),
+  #         any(class(list_letters_match) == 'list')
+  #       )
+  #     )
+  # )
 
   stopifnot(
     "'dbl_scale_ub' must be numeric and greater than 'dbl_scale_lb'." =
@@ -1038,6 +1038,70 @@ fun_letters_profiles <- function(
 
 }
 
+# - Regular professional profile to letter profile -----------
+fun_letters_rearrange <- function(
+    df_data_rows
+    , chr_id_col = NULL
+){
+
+  # Arguments validation
+  stopifnot(
+    "'df_data_rows' must be a data frame with numeric columns." =
+      all(
+        is.data.frame(df_data_rows)
+        , any(map_lgl(df_data_rows, is.numeric))
+      )
+  )
+
+  stopifnot(
+    "'chr_id_col' must be either NULL or a character string with the name of an ID column in 'df_data_rows'." =
+      any(
+        is.null(chr_id_col)
+        , all(
+          is.character(chr_id_col)
+          , chr_id_col %in% names(df_data_rows)
+        )
+      )
+  )
+
+  # Data wrangling
+  chr_id_col[[1]] -> chr_id_col
+
+  # Reorder and rename
+  df_data_rows %>%
+    select(
+      chr_id_col,
+      where(is.numeric)
+    ) %>%
+    pivot_longer(
+      cols = where(is.numeric)
+      , names_to = 'item'
+      , values_to = 'item_score'
+    ) %>%
+    group_by(across(
+      chr_id_col
+    )) %>%
+    arrange(
+      item_score
+    ) %>%
+    mutate(
+      item =
+        paste0(
+          'item_',
+          1:n()
+        )
+    ) %>%
+    ungroup() %>%
+    pivot_wider(
+      names_from = 'item',
+      values_from = 'item_score'
+    ) -> df_data_rows
+
+  # Output
+  return(df_data_rows)
+
+}
+
 # - Letter matching ----------------------------------------------
 fun_letters_similarity <- function(
     df_letters_profile
@@ -1115,34 +1179,10 @@ fun_letters_similarity <- function(
   chr_id_col[[1]] -> chr_id_col
 
   # Reorder items
-  df_query_rows %>%
-    select(
-      chr_id_col,
-      where(is.numeric)
-    ) %>%
-    pivot_longer(
-      cols = where(is.numeric)
-      , names_to = 'item'
-      , values_to = 'item_score'
-    ) %>%
-    group_by(across(
-      chr_id_col
-    )) %>%
-    arrange(
-      item_score
-    ) %>%
-    mutate(
-      item =
-        paste0(
-          'item_',
-          1:n()
-        )
-    ) %>%
-    ungroup() %>%
-    pivot_wider(
-      names_from = 'item',
-      values_from = 'item_score'
-    ) -> df_query_rows
+  fun_letters_rearrange(
+    df_data_rows = df_query_rows
+    , chr_id_col = chr_id_col
+  ) -> df_query_rows
 
   # Apply matching function
   fun_match_similarity(
@@ -1153,33 +1193,7 @@ fun_letters_similarity <- function(
     , dbl_scale_lb = dbl_scale_lb
     , chr_id_col = chr_id_col
     , lgc_sort = lgc_sort
-  ) -> list_letters_match
-
-  return(list_letters_match)
-  stop()
-
-  # Data wrangling
-  list_letters_match$
-    list_similarity %>%
-    map(
-      ~ .x %>%
-        as_tibble(
-          rownames = 'id_glyph'
-        ) %>%
-        rename(
-          similarity = value
-        )
-    ) -> list_similarity
-
-  rm(list_letters_match)
-
-  # Add 'list_letters_match' subclass
-  c(
-    class(list_similarity)
-    , 'list_letters_match'
-  ) -> class(
-    list_similarity
-  )
+  ) -> list_similarity
 
   # Output
   return(list_similarity)
