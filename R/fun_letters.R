@@ -312,8 +312,6 @@ bind_rows(
 rm(chr_cyrillic)
 rm(chr_greek)
 rm(chr_latin)
-
-
 # [FUNCTIONS] -------------------------------------------------------------
 # - Letters data frame ----------------------------------------------------
 fun_letters_data <- function(
