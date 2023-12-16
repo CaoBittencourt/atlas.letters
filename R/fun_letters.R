@@ -482,9 +482,10 @@ fun_letters_data <- function(
 # - Plot letters -----------------------------------------------------------
 fun_letters_plot <- function(
     df_letters
-    , list_letters_match = NULL
+    , df_rearranged_long = NULL
     , dbl_scale_ub = 100
     , dbl_scale_lb = 0
+    , chr_color = 'red'
 ){
 
   # Arguments validation
@@ -493,16 +494,16 @@ fun_letters_plot <- function(
       any(class(df_letters) == 'df_letters')
   )
 
-  # stopifnot(
-  #   "'list_letters_match' must be either NULL or a list with the 'list_letters_match' subclass." =
-  #     any(
-  #       is.null(list_letters_match)
-  #       , all(
-  #         any(class(list_letters_match) == 'list_letters_match'),
-  #         any(class(list_letters_match) == 'list')
-  #       )
-  #     )
-  # )
+  stopifnot(
+    "'df_rearranged_long' must be either NULL or a dataframe with the 'df_rearranged_long' subclass." =
+      any(
+        is.null(df_rearranged_long)
+        , all(
+          is.data.frame(df_rearranged_long),
+          any(class(df_rearranged_long) == 'df_rearranged_long')
+        )
+      )
+  )
 
   stopifnot(
     "'dbl_scale_ub' must be numeric and greater than 'dbl_scale_lb'." =
@@ -518,364 +519,143 @@ fun_letters_plot <- function(
       is.numeric(dbl_scale_lb)
   )
 
-  # Auxiliary function
-  fun_letters_plot_aux <- function(df_letter){
+  stopifnot(
+    "'chr_color' must be a character string." =
+      is.character(chr_color)
+  )
 
-    # Plot letter
-    df_letter %>%
-      ggplot(aes(
-        x = x,
-        y =
-          dbl_scale_ub[[1]] -
-          item_score
-      )) +
-      geom_path(aes(
-        group = stroke
-      )) +
-      geom_point() +
-      coord_equal() +
-      scale_y_reverse() +
-      ylim(
-        dbl_scale_ub[[1]],
-        dbl_scale_lb[[1]]
-      ) +
-      theme_minimal() ->
-      plt_letter
+  # Data wrangling
+  dbl_scale_ub[[1]] -> dbl_scale_ub
 
-    # Output
-    return(plt_letter)
+  dbl_scale_lb[[1]] -> dbl_scale_lb
 
-  }
+  chr_color[[1]] -> chr_color
 
-  # Plot df_letters
   df_letters %>%
-    split(.$id_glyph) %>%
-    map(
-      fun_letters_plot_aux
+    split(.$id_glyph) ->
+    list_df_letters
+
+  rm(df_letters)
+
+  # Plot type
+  if(is.null(df_rearranged_long)){
+    # Plot letter
+
+    # Auxiliary function
+    fun_letters_plot_aux <- function(df_letter){
+
+      # Plot letter
+      df_letter %>%
+        ggplot(aes(
+          x = x,
+          y =
+            dbl_scale_ub -
+            item_score
+        )) +
+        geom_path(aes(
+          group = stroke
+        )) +
+        geom_point() +
+        coord_equal() +
+        scale_y_reverse() +
+        ylim(
+          dbl_scale_ub,
+          dbl_scale_lb
+        ) +
+        theme_minimal() ->
+        plt_letter
+
+      # Output
+      return(plt_letter)
+
+    }
+
+    # Plot letters
+    list_df_letters %>%
+      map(
+        fun_letters_plot_aux
+      ) -> list_plt_letters
+
+  } else {
+    # Plot letter vs profile
+
+    # Auxiliary function
+    fun_letters_plot_profile_aux <- function(
+    df_profile,
+    df_letter
+    ){
+
+      # Plot letter vs profile
+      df_letter %>%
+        ggplot(aes(
+          x = x,
+          y = dbl_scale_ub - item_score
+        )) +
+        geom_path(aes(
+          group = stroke
+        )) +
+        geom_point(
+          data =
+            df_profile %>%
+            right_join(
+              df_letter %>%
+                fun_letters_profiles(
+                  int_items = nrow(df_profile),
+                  lgc_pivot_long = T
+                ) %>%
+                select(
+                  x, item
+                )
+            )
+          , color = chr_color
+          , size = 2.2
+        ) +
+        coord_equal() +
+        scale_y_reverse() +
+        ylim(
+          dbl_scale_ub,
+          dbl_scale_lb
+        ) +
+        theme_minimal() ->
+        plt_letter_profile
+
+      # Output
+      return(plt_letter_profile)
+
+    }
+
+    # Profile list
+    df_rearranged_long %>%
+      split(.$id_profile) ->
+      list_df_profiles
+
+    rm(df_rearranged_long)
+
+    # Apply plotting function for each profile
+    lapply(
+      list_df_profiles
+      , function(profile){
+
+        lapply(
+          list_df_letters
+          , function(letter){
+
+            # Plot letter vs profile
+            fun_letters_plot_profile_aux(
+              df_profile = profile
+              , df_letter = letter
+            ) -> plt_letter_profile
+
+            # Output
+            return(plt_letter_profile)
+
+          }
+        )
+
+      }
     ) -> list_plt_letters
 
-  # if(!is.null(list_letters_match)){
-  #
-  #
-  #   # Data wrangling
-  #   list_letters_match %>%
-  #     map(
-  #       ~ .x %>%
-  #         select(
-  #
-  #         )
-  #     )
-  #   df_letters_profile %>%
-  #     slice(1) %>%
-  #     pivot_longer(
-  #       cols = -1
-  #       , names_to = 'item'
-  #       , values_to = 'item_score'
-  #     ) %>%
-  #     arrange(
-  #       item_score
-  #     ) %>%
-  #     mutate(
-  #       item =
-  #         paste0(
-  #           'item_'
-  #           , 1:n()
-  #         )
-  #     ) %>%
-  #     right_join(
-  #       fun_letters_data() %>%
-  #         filter(
-  #           glyph == 86 &
-  #             font == 'latin'
-  #         ) %>%
-  #         fun_letters_profiles(
-  #           int_items = 60
-  #           , lgc_pivot_long = T
-  #         ) %>%
-  #         select(
-  #           x, item
-  #         )
-  #     )
-  #
-  #   # Plot profiles
-  #   Map(
-  #     function(match, letter){
-  #
-  #       # Plot profile
-  #       letter +
-  #         geom_point(
-  #           data =
-  #             match
-  #         ) -> plt_letter
-  #
-  #       # Output
-  #       return(plt_letter)
-  #
-  #
-  #     }
-  #     , match = list_letters_match
-  #     , letter = rep(
-  #       list_plt_letters
-  #       , length(
-  #         list_letters_match
-  #       )
-  #     )
-  #   ) -> list_plt_letters
-  #
-  # }
-  #
-  #
-  # df_letters_profile
-
-  # Plot df_letters_long
-
-  # fun_letters_data(
-  #   int_glyph = 86
-  #   , chr_font = 'latin'
-  #   , lgc_upside_down = F
-  # ) %>%
-  #   ggplot(aes(
-  #     x = x,
-  #     y = 100 - item_score,
-  #     # y = y,
-  #     group = stroke
-  #   )) +
-  #   geom_path() +
-  #   geom_point() +
-  #   coord_equal() +
-  #   theme_minimal() +
-  #   scale_y_reverse() +
-  #   ylim(100, 0)
-
-  # df_input %>%
-  #   slice(1) %>%
-  #   pivot_longer(
-  #     cols = -1
-  #     , names_to = 'item'
-  #     , values_to = 'item_score'
-  #   ) %>%
-  #   arrange(
-  #     item_score
-  #   ) %>%
-  #   mutate(
-  #     item =
-  #       paste0(
-  #         'item_'
-  #         , 1:n()
-  #       )
-  #   ) %>%
-  #   right_join(
-  #     fun_letters_data() %>%
-  #       filter(
-  #         glyph == 86 &
-  #           font == 'latin'
-  #       ) %>%
-  #       fun_letters_profiles(
-  #         int_items = 60
-  #         , lgc_pivot_long = T
-  #       ) %>%
-  #       select(
-  #         x, item
-  #       )
-  #   ) %>%
-  #   ggplot(aes(
-  #     x = x,
-  #     y = item_score
-  #   )) +
-  #   geom_path(
-  #     data =
-  #       fun_letters_data() %>%
-  #       filter(
-  #         glyph == 86 &
-  #           font == 'latin'
-  #       ) %>%
-  #       fun_letters_profiles(
-  #         int_items = 9
-  #         , lgc_pivot_long = T
-  #         , chr_id_col =
-  #           'occupation'
-  #       )
-  #     , aes(
-  #       x = x,
-  #       y = item_score,
-  #       group = stroke,
-  #       color = character
-  #     )
-  #   ) +
-  #   geom_point() +
-  #   coord_equal() +
-  #   theme_minimal() +
-  #   scale_y_reverse() +
-  #   ylim(100, 0)
-  #
-  # fun_letters_data() %>%
-  #   filter(
-  #     glyph == 86 &
-  #       font == 'latin'
-  #   ) %>%
-  #   ggplot(aes(
-  #     x = x,
-  #     y = 100 - item_score,
-  #     group = stroke
-  #   )) +
-  #   geom_path() +
-  #   geom_point(
-  #     data =
-  #       df_input %>%
-  #       slice(1) %>%
-  #       pivot_longer(
-  #         cols = -1
-  #         , names_to = 'item'
-  #         , values_to = 'item_score'
-  #       ) %>%
-  #       arrange(
-  #         item_score
-  #       ) %>%
-  #       mutate(
-  #         item =
-  #           paste0(
-  #             'item_'
-  #             , 1:n()
-  #           )
-  #       ) %>%
-  #       right_join(
-  #         fun_letters_data() %>%
-  #           filter(
-  #             glyph == 86 &
-  #               font == 'latin'
-  #           ) %>%
-  #           fun_letters_profiles(
-  #             int_items = 60
-  #             , lgc_pivot_long = T
-  #           ) %>%
-  #           select(
-  #             x, item
-  #           )
-  #       )
-  #     , color = 'red'
-  #     , size = 2.2
-  #   ) +
-  #   # coord_equal() +
-  #   scale_y_reverse() +
-  #   ylim(100, 0) +
-  #   theme_minimal()
-  #
-  # df_input %>%
-  #   slice(1) %>%
-  #   pivot_longer(
-  #     cols = -1
-  #     , names_to = 'item'
-  #     , values_to = 'item_score'
-  #   ) %>%
-  #   arrange(
-  #     item_score
-  #   ) %>%
-  #   mutate(
-  #     item =
-  #       paste0(
-  #         'item_'
-  #         , 1:n()
-  #       )
-  #   ) %>%
-  #   right_join(
-  #     fun_letters_data() %>%
-  #       filter(
-  #         glyph == 86 &
-  #           font == 'latin'
-  #       ) %>%
-  #       fun_letters_profiles(
-  #         int_items = 60
-  #         , lgc_pivot_long = T
-  #       ) %>%
-  #       select(
-  #         x, item
-  #       )
-  #   )
-  #
-  # fun_letters_data() %>%
-  #   filter(
-  #     glyph == 86 &
-  #       font == 'latin'
-  #   ) %>%
-  #   fun_letters_profiles(
-  #     int_items = 9
-  #     , lgc_pivot_long = T
-  #   ) %>%
-  #   ggplot(aes(
-  #     x = x,
-  #     y = 100 - item_score,
-  #     # y = y,
-  #     group = stroke
-  #   )) +
-  #   geom_path() +
-  #   geom_point() +
-  #   coord_equal() +
-  #   theme_minimal() +
-  #   scale_y_reverse() +
-  #   ylim(100, 0)
-  #
-  #
-  # fun_letters_data() %>%
-  #   filter(
-  #     glyph == 86 &
-  #       font == 'latin'
-  #   ) %>%
-  #   select(
-  #     item,
-  #     item_score,
-  #     stroke,
-  #     x,
-  #     y
-  #   )
-  #
-  # fun_letters_data() %>%
-  #   filter(
-  #     glyph == 86 &
-  #       font == 'latin'
-  #   ) %>%
-  #   fun_letters_profiles(
-  #     int_items = 9
-  #     , lgc_pivot_long = T
-  #   ) %>%
-  #   arrange(
-  #     stroke
-  #   ) %>%
-  #   select(
-  #     item,
-  #     item_score,
-  #     stroke,
-  #     x,
-  #     y
-  #   ) %>%
-  #   ggplot(aes(
-  #     x = x,
-  #     y = 100 - item_score,
-  #     # y = y,
-  #     group = stroke
-  #   )) +
-  #   geom_path() +
-  #   geom_point() +
-  #   coord_equal() +
-  #   theme_minimal() +
-  #   scale_y_reverse() +
-  #   ylim(100, 0)
-  #
-  # fun_letters_data() %>%
-  #   filter(
-  #     glyph == 86 &
-  #       font == 'latin'
-  #   ) %>%
-  #   fun_letters_profiles(
-  #     int_items = 9
-  #     , lgc_pivot_long = T
-  #   ) %>%
-  #   select(
-  #     item,
-  #     item_score,
-  #     stroke,
-  #     x,
-  #     y
-  #   )
+  }
 
   # Output
   return(list_plt_letters)
@@ -1040,6 +820,7 @@ fun_letters_profiles <- function(
 fun_letters_rearrange <- function(
     df_data_rows
     , chr_id_col = NULL
+    , lgc_pivot_long = F
 ){
 
   # Arguments validation
@@ -1062,12 +843,39 @@ fun_letters_rearrange <- function(
       )
   )
 
+  stopifnot(
+    "'lgc_pivot_long' must be either TRUE or FALSE." =
+      all(
+        is.logical(lgc_pivot_long)
+        , !is.na(lgc_pivot_long)
+      )
+  )
+
   # Data wrangling
   chr_id_col[[1]] -> chr_id_col
 
+  lgc_pivot_long[[1]] -> lgc_pivot_long
+
   # Reorder and rename
   df_data_rows %>%
+    mutate(
+      .before = 1
+      , id_profile =
+        paste0(
+         'profile_',
+         row_number()
+        )
+      , id_profile =
+        as.character(
+          id_profile
+        )
+      , id_profile =
+        as.factor(
+          id_profile
+        )
+    ) %>%
     select(
+      id_profile,
       chr_id_col,
       where(is.numeric)
     ) %>%
@@ -1076,35 +884,53 @@ fun_letters_rearrange <- function(
       , names_to = 'item'
       , values_to = 'item_score'
     ) %>%
-    group_by(across(
-      chr_id_col
-    )) %>%
+    group_by(
+      id_profile
+    ) %>%
     arrange(
       item_score
     ) %>%
     mutate(
       item =
         paste0(
-          'item_',
-          1:n()
+          'item_'
+          , 1:n()
         )
     ) %>%
-    ungroup() %>%
-    pivot_wider(
-      names_from = 'item',
-      values_from = 'item_score'
-    ) -> df_rearranged
+    ungroup() ->
+    df_rearranged
 
   rm(df_data_rows)
 
-  # 'df_rearranged' subclass
-  new_data_frame(
-    df_rearranged
-    , class = c(
-      class(df_rearranged)
-      , 'df_rearranged'
-    )
-  ) -> df_rearranged
+  if(!lgc_pivot_long){
+
+    df_rearranged %>%
+      pivot_wider(
+        names_from = 'item',
+        values_from = 'item_score'
+      ) -> df_rearranged
+
+    # 'df_rearranged' subclass
+    new_data_frame(
+      df_rearranged
+      , class = c(
+        class(df_rearranged)
+        , 'df_rearranged'
+      )
+    ) -> df_rearranged
+
+  } else {
+
+    # 'df_rearranged_long' subclass
+    new_data_frame(
+      df_rearranged
+      , class = c(
+        class(df_rearranged)
+        , 'df_rearranged_long'
+      )
+    ) -> df_rearranged
+
+  }
 
   # Output
   return(df_rearranged)
