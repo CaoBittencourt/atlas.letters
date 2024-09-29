@@ -422,6 +422,8 @@ fun_letters_data <- function(
   }
 
   # Normalize font scales
+  # extract this to its own function:
+  # fun_letters_item_scores
   df_letters %>%
     group_by(font) %>%
     mutate(
@@ -465,6 +467,9 @@ fun_letters_data <- function(
         )
     ) -> df_letters
 
+  # Linear interpolation indicator
+  df_letters$interpolated <- F
+
   # Add 'df_letters' subclass
   df_letters %>%
     new_data_frame(
@@ -472,6 +477,154 @@ fun_letters_data <- function(
         class(df_letters),
         'df_letters'
       )
+    ) -> df_letters
+
+  # Output
+  return(df_letters)
+
+}
+
+# - Linearly interpolated letters -----------------------------------------------
+fun_letters_interpol <- function(
+    df_letters
+    , int_items = 60
+    , dbl_pct_precision = 0.25
+){
+
+  # Arguments validation
+  stopifnot(
+    "'df_letters' must be a data frame with the 'df_letters' subclass." =
+      any(class(df_letters) == 'df_letters')
+  )
+
+  stopifnot(
+    "'int_items' must be numeric." =
+      is.numeric(int_items)
+  )
+
+  stopifnot(
+    "'dbl_pct_precision' must be a percentage." =
+      all(
+        is.numeric(dbl_pct_precision),
+        dbl_pct_precision >= 0,
+        dbl_pct_precision <= 1
+      )
+  )
+
+  # Data wrangling
+  int_items[[1]] -> int_items
+
+  dbl_pct_precision[[1]] -> dbl_pct_precision
+
+  df_letters %>%
+    split(.$id_glyph) ->
+    list_df_letters
+
+  rm(df_letters)
+
+  # Auxiliary functions
+  fun_aux_interpol_prep <- function(df_letter){
+
+    # Calculate points' Euclidean distance
+    df_letter %>%
+      group_by(
+        id_glyph
+      ) %>%
+      # arrange(
+      #   x, y
+      #   ,.by_group = T
+      # ) %>%
+      mutate(
+        dist = sqrt(
+          (x - lead(x)) ^ 2 +
+            (y - lead(y)) ^ 2
+        )
+      ) %>%
+      ungroup() %>%
+      drop_na() ->
+      df_letter
+
+    # Calculate minimum Euclidean distance
+    df_letter %>%
+      group_by(
+        id_glyph
+      ) %>%
+      mutate(
+        dist_min = min(dist)
+      ) -> df_letter
+
+    # Interpolate points with higher distances
+    df_letter %>%
+      filter(
+        dist >
+          dbl_pct_precision *
+          dist_min
+      ) -> df_letter
+
+    # Repeat interpolation to reduce distances
+
+    # Output
+    return(df_letter)
+
+  }
+
+  fun_aux_interpol <- function(df_letter){
+
+    # Linear interpolation
+    df_letter %>%
+      group_by(
+        id_glyph
+      ) %>%
+      # arrange(
+      #   x, y
+      #   ,.by_group = T
+      # ) %>%
+      reframe(
+        across(
+          .cols = -c(x, y, stroke)
+          ,.fns = ~ .x
+        )
+        , x = (x + lead(x)) / 2
+        , y = (y + lead(y)) / 2
+        , stroke = lead(stroke)
+      ) %>%
+      drop_na() %>%
+      mutate(
+        # stroke = NA,
+        interpolated = T
+      ) -> df_interpol
+
+    bind_rows(
+      df_letter,
+      df_interpol
+    ) -> df_letter
+
+    # Output
+    return(df_letter)
+
+  }
+
+  fun_aux_interpol_loop <- function(df_letter){
+
+    # Apply linear interpolation function iteratively
+    while(nrow(df_letter) <= int_items){
+
+      fun_aux_interpol(
+        df_letter
+      ) -> df_letter
+
+    }
+
+    # Output
+    return(df_letter)
+
+  }
+
+  # Apply linear interpolation function
+  list_df_letters %>%
+    map_df(
+      # fun_aux_interpol_loop
+      fun_aux_interpol
     ) -> df_letters
 
   # Output
@@ -542,26 +695,60 @@ fun_letters_plot <- function(
     # Plot letter
 
     # Auxiliary function
+    # fun_letters_plot_aux <- function(df_letter){
+    #
+    #   # Plot letter
+    #   df_letter %>%
+    #     ggplot(aes(
+    #       x = x,
+    #       y =
+    #         dbl_scale_ub -
+    #         item_score
+    #     )) +
+    #     geom_path(aes(
+    #       group = stroke
+    #     )) +
+    #     geom_point() +
+    #     coord_equal() +
+    #     # scale_y_reverse() +
+    #     # ylim(
+    #     #   dbl_scale_ub,
+    #     #   dbl_scale_lb
+    #     # ) +
+    #     theme_minimal() ->
+    #     plt_letter
+    #
+    #   # Output
+    #   return(plt_letter)
+    #
+    # }
+
     fun_letters_plot_aux <- function(df_letter){
 
       # Plot letter
       df_letter %>%
         ggplot(aes(
           x = x,
-          y =
-            dbl_scale_ub -
-            item_score
+          y = y
         )) +
-        geom_path(aes(
-          group = stroke
+        geom_path(
+          data =
+            df_letter %>%
+            filter(
+              !interpolated
+            )
+          , aes(
+            group = stroke
+          )) +
+        geom_point(aes(
+          color = interpolated
         )) +
-        geom_point() +
         coord_equal() +
-        scale_y_reverse() +
-        ylim(
-          dbl_scale_ub,
-          dbl_scale_lb
-        ) +
+        # scale_y_reverse() +
+        # ylim(
+        #   dbl_scale_ub,
+        #   dbl_scale_lb
+        # ) +
         theme_minimal() ->
         plt_letter
 
@@ -862,8 +1049,8 @@ fun_letters_rearrange <- function(
       .before = 1
       , id_profile =
         paste0(
-         'profile_',
-         row_number()
+          'profile_',
+          row_number()
         )
       , id_profile =
         as.character(
@@ -1450,3 +1637,33 @@ fun_letters_similarity <- function(
 # # lalala$
 # #   df_similarity$
 # #   similarity
+
+# - Linearly interpolated letters -----------------------------------------
+fun_letters_data(
+  chr_font = 'latin'
+  , int_glyph =
+    df_alphabets %>%
+    filter(
+      font == 'latin'
+    ) %>%
+    slice(1:10) %>%
+    pull(glyph)
+  , lgc_upside_down = F
+  , dbl_scale_ub = 100
+  , dbl_scale_lb = 0
+) -> dsds
+
+dsds %>%
+  filter(
+    id_glyph == 'latin_34'
+  ) -> dsdsds
+
+fun_letters_interpol(
+  # df_letters = dsdsds
+  df_letters = dsds
+  , int_items = 60
+) -> dsdsds
+
+dsdsds %>%
+  # dsds %>%
+  fun_letters_plot()

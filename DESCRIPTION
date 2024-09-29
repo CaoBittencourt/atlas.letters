@@ -1,6 +1,6 @@
 Package: atlas.letters
 Type: Package
-Title: Letter-Shaped Profiles: A Generalization of 'T-Shaped Skills'
+Title: Letter-Shaped Profiles: A Generalization of `T-Shaped Skills'
 Version: 2.6.0
 Author: Cao Bittencourt
 Maintainer: Cao Bittencourt <caobittencourt@gmail.com>
